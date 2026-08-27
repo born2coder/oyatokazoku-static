@@ -1,0 +1,3 @@
+:root{color-scheme:light;--oy-navy:#142845;--oy-green:#58764b;--oy-pale:#f4f6ee;--oy-text:#25354b}
+html{scroll-behavior:smooth}body{margin:0;color:var(--oy-text);background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif}main{display:block}.not-found{min-height:75vh;display:grid;place-content:center;text-align:center;padding:32px}.not-found .code{margin:0;color:var(--oy-green);font:500 64px/1 "Yu Mincho",serif}.not-found h1{color:var(--oy-navy);font:500 30px/1.5 "Yu Mincho",serif}.not-found a{display:inline-block;margin-top:12px;color:#fff;background:var(--oy-green);padding:12px 22px;border-radius:6px;text-decoration:none}
+@media(max-width:760px){body{overflow-x:hidden}table{max-width:100%}}
