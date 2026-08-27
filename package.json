@@ -1,0 +1,9 @@
+{
+  "name": "oyatokazoku-static",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/generate.mjs",
+    "check": "node scripts/validate.mjs"
+  }
+}
