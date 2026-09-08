@@ -45,6 +45,12 @@ function cleanContent(page) {
       .replace(/<p>具体的な手続きや連絡先は、本サイト内のお問い合わせ窓口でご案内します。<\/p>/g, '<p>本サイトは現在、利用者が個人情報を入力して送信する問い合わせフォームを設置していません。</p>')
       .replace(/<section class="oy-section"><h2>お問い合わせ<\/h2>[\s\S]*?<\/section>/g, '');
   }
+  if (page.post_name === 'about') {
+    content = content.replace(
+      '<div class="oy-label">このサイトについて</div>',
+      '<div class="oy-label">サイトの考え方</div>',
+    );
+  }
   return content.trim();
 }
 
