@@ -110,6 +110,7 @@ function documentFor(page) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="google-site-verification" content="yUgHySgCEWybicqixE-WaU7Q769IpXdFN2IawkTachE">
   <title>${escapeHtml(title)}</title>
   <meta name="description" content="${escapeHtml(desc)}">
   <link rel="canonical" href="${canonical}">
