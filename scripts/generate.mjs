@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const pages = JSON.parse(fs.readFileSync(path.join(root, 'content', 'pages.json'), 'utf8'));
+const actions = JSON.parse(fs.readFileSync(path.join(root, 'content/actions.json'), 'utf8'));
 const output = path.join(root, 'dist');
 const origin = 'https://oyatokazoku.com';
 const siteName = '親のこと、家族のこと。';
@@ -51,7 +52,16 @@ function cleanContent(page) {
       '<div class="oy-label">サイトの考え方</div>',
     );
   }
-  return content.trim();
+  content = content.replace(/<!--[^]*?-->/g, '');
+  // One shared title and breadcrumb; original article sections retain their anchors.
+  content = content.replace(/<h1\b[^>]*>[^]*?<\/h1>/i, '');
+  const action = actions[page.ID];
+  const title = `<h1>${escapeHtml(Number(page.ID) === 8 ? siteName : page.post_title)}</h1>`;
+  const parent = byId.get(Number(page.post_parent));
+  const crumb = Number(page.ID) === 8 ? '' : `<nav class="breadcrumb" aria-label="パンくず"><a href="/">ホーム</a>${parent ? ` / <a href="${pagePath(parent)}">${escapeHtml(parent.post_title)}</a>` : ''} / <span>${escapeHtml(page.post_title)}</span></nav>`;
+  const first = action ? `<section class="first-step" aria-labelledby="first-step-title"><p class="eyebrow">ここから始めて大丈夫です</p><h2 id="first-step-title">まず、今日すること</h2><p>${escapeHtml(action[0])}</p><h3>そのまま使える、相談の言葉</h3><blockquote>${escapeHtml(action[1])}</blockquote><h3>話が進まないときは</h3><p>${escapeHtml(action[2])}</p><a href="/tools/?topic=${encodeURIComponent(page.post_title)}&question=${encodeURIComponent(action[1])}#questions">この質問を相談メモに入れる →</a></section>` : '';
+  const edited = `<p class="editorial-date">内容・導線の更新：2026年10月28日。制度の確認日は該当箇所に記載しています。</p>`;
+  return `${crumb}${title}${first}<div class="article-body">${content.trim()}</div>${edited}`;
 }
 
 function plainText(value) {
@@ -66,13 +76,14 @@ function description(page, content) {
   if (pagePath(page) === '/') {
     return '親の入院、介護、葬儀、相続、遺品整理、実家じまい。家族が困ったときに、次に確認することを順番に整理した実用ガイドです。';
   }
-  const text = plainText(content);
+  const text = actions[page.ID] ? `${page.post_title}。${actions[page.ID][0]} ${actions[page.ID][2]}` : plainText(content);
   return text.length > 150 ? `${text.slice(0, 149).replace(/[、。\s]+$/u, '')}…` : text;
 }
 
 function globalHeader(route) {
   const links = [
     ['/#guides', 'ガイド一覧'],
+    ['/tools/', '相談・費用メモ'],
     ['/about/', 'このサイトについて'],
     ['/faq/', 'よくある質問'],
     ['/news/', 'お知らせ'],
@@ -121,16 +132,17 @@ function documentFor(page) {
   <meta property="og:url" content="${canonical}">
   <meta name="twitter:card" content="summary">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/site.css?v=20260905-1">
+<link rel="stylesheet" href="/assets/site.css?v=20261028-1">
   <script type="application/ld+json">${schema}</script>
 </head>
-<body>${globalHeader(route)}<main id="main">${content}</main>${globalFooter()}</body>
+<body><a class="skip-link" href="#main">本文へ進む</a>${globalHeader(route)}<main id="main">${content}</main>${globalFooter()}<script src="/assets/site.js?v=20261028-1" defer></script></body>
 </html>\n`;
 }
 
 fs.rmSync(output, { recursive: true, force: true });
 fs.mkdirSync(path.join(output, 'assets'), { recursive: true });
 fs.copyFileSync(path.join(root, 'static', 'site.css'), path.join(output, 'assets', 'site.css'));
+fs.copyFileSync(path.join(root, 'static', 'site.js'), path.join(output, 'assets', 'site.js'));
 fs.copyFileSync(path.join(root, 'static', 'favicon.svg'), path.join(output, 'favicon.svg'));
 
 const manifest = [];
@@ -143,11 +155,12 @@ for (const page of pages) {
   manifest.push({ id: Number(page.ID), path: route, title: page.post_title, modified: page.post_modified });
 }
 
+fs.writeFileSync(path.join(output, 'assets/search.json'), JSON.stringify(pages.filter(p => actions[p.ID]).map(p => ({title:p.post_title, url:pagePath(p), text: actions[p.ID].join(' ')}))));
 const sitemap = manifest.map((page) => `  <url><loc>${origin}${page.path}</loc><lastmod>${page.modified.slice(0, 10)}</lastmod></url>`).join('\n');
 fs.writeFileSync(path.join(output, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap}\n</urlset>\n`);
 fs.writeFileSync(path.join(output, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`);
 fs.writeFileSync(path.join(output, '_headers'), `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n`);
 fs.writeFileSync(path.join(output, '_redirects'), `/index.php / 301\n/home/ / 301\n`);
-fs.writeFileSync(path.join(output, '404.html'), `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ページが見つかりません｜${siteName}</title><link rel="stylesheet" href="/assets/site.css?v=20260905-1"></head><body>${globalHeader('')}<main class="not-found"><p class="code">404</p><h1>ページが見つかりません</h1><p>URLが変わったか、ページが存在しない可能性があります。</p><a href="/">サイトTOPへ戻る</a></main>${globalFooter()}</body></html>`);
+fs.writeFileSync(path.join(output, '404.html'), `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ページが見つかりません｜${siteName}</title><link rel="stylesheet" href="/assets/site.css?v=20261028-1"></head><body>${globalHeader('')}<main class="not-found"><p class="code">404</p><h1>ページが見つかりません</h1><p>URLが変わったか、ページが存在しない可能性があります。</p><a href="/">サイトTOPへ戻る</a></main>${globalFooter()}<script src="/assets/site.js?v=20261028-1" defer></script></body></html>`);
 fs.writeFileSync(path.join(root, 'page-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`Built ${manifest.length} pages.`);
